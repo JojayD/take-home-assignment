@@ -8,6 +8,7 @@ import {
 	Menu,
 	X,
 	Briefcase,
+	BookMarked
 } from "lucide-react";
 
 const Header = () => {
@@ -60,11 +61,11 @@ const Header = () => {
 						</li>
 						<li>
 							<a
-								href='/'
+								href='/saved'
 								className='flex items-center gap-2 px-3 py-2 font-medium transition-colors hover:text-orange-200 hover:bg-orange-600/40 rounded-md'
 							>
-								<PersonStanding size={18} />
-								About
+								<BookMarked size={18} />
+								Saved
 							</a>
 						</li>
 					</ul>
@@ -101,8 +102,8 @@ const Header = () => {
 								className='flex items-center gap-2 px-4 py-3 rounded-md hover:bg-orange-500 transition-colors'
 								onClick={toggleMenu}
 							>
-								<PersonStanding size={18} />
-								<span className='font-medium'>About</span>
+								<BookMarked size={18} />
+								<span className='font-medium'>Saved</span>
 							</a>
 						</li>
 					</ul>

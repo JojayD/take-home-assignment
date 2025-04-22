@@ -2,48 +2,110 @@
 "use client";
 
 import React from "react";
-import { Bookmark } from "lucide-react";
+import { Bookmark, MapPin, Building2, CalendarClock } from "lucide-react";
 import { JobRecord } from "../types/jobRecord";
-import UnsplashLogo from "./Unsplashlogo";
+import Avatar from "@mui/material/Avatar";
 
 type Props = {
 	job: JobRecord;
 	onViewDetails?: () => void;
+	saveLocalStorage?: (job: JobRecord) => void;
+	onDeleteLocalStorage?: (job: JobRecord) => void;
+	onBookmark?: (job: JobRecord) => void;
 };
 
-export default function JobCard({ job, onViewDetails }: Props) {
+const randomTypeOfJob = [
+	"Full-time",
+	"Part-time",
+	"Contract",
+	"Internship",
+	"Remote",
+];
+
+export default function JobCard({
+	job,
+	onViewDetails,
+	saveLocalStorage,
+	onDeleteLocalStorage,
+	onBookmark,
+}: Props) {
 	return (
-		<div className='relative bg-white border border-gray-100 rounded-lg shadow-sm hover:shadow-md transition w-full'>
+		<div className='relative bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 w-full group'>
+			{/* Colorful top border accent */}
+			<div className='h-1 bg-gradient-to-r from-orange-400 to-yellow-500'></div>
+
 			{/* Bookmark button */}
-			<button className='absolute top-3 right-3 p-1 text-gray-400 hover:text-gray-600'>
-				<Bookmark className='w-5 h-5' />
+			<button
+				className='absolute top-4 right-4 p-2 rounded-full bg-white/70 backdrop-blur-sm text-gray-400 hover:text-orange-500 hover:bg-white transform transition-all duration-300 hover:scale-110 hover:rotate-[10deg] z-10'
+				onClick={(e) => {
+					e.stopPropagation();
+					if (onBookmark) onBookmark(job);
+				}}
+			>
+				<Bookmark
+					className={`w-5 h-5 ${
+						job.bookmarked ? "fill-orange-500" : "fill-transparent"
+					}`}
+				/>
 			</button>
 
-			<div className='p-5'>
+			<div
+				className='p-6 cursor-pointer transition-all duration-300 hover:bg-gray-50'
+				onClick={onViewDetails}
+			>
 				{/* Logo + Job Title */}
 				<div className='flex items-center mb-5'>
-					<div className='w-12 h-12 mr-3 flex-shrink-0'>
-						<UnsplashLogo
-							seed={`${job.id || Math.random().toString(36).substring(7)}`}
-							className='w-full h-full'
-						/>
+					<div className='w-14 h-14 mr-4 flex-shrink-0 transform group-hover:scale-105 transition-transform duration-300'>
+						<Avatar
+							sx={{
+								width: 56,
+								height: 56,
+								bgcolor: "orange.500",
+								fontSize: "1.5rem",
+								boxShadow: "0 4px 12px rgba(249, 115, 22, 0.15)",
+							}}
+						>
+							{job.jobTitle.substring(0, 2)}
+						</Avatar>
 					</div>
 					<div className='flex flex-col'>
-						<h2 className='text-lg font-medium text-gray-800'>Title: {job.jobTitle}</h2>
-						<h2 className='text-lg font-medium text-gray-500'>Company: {job.companyName}</h2>
+						<h2 className='text-xl font-bold text-gray-800 mb-1 group-hover:text-orange-500 transition-colors duration-300'>
+							{job.jobTitle}
+						</h2>
+						<div className='flex items-center text-gray-600'>
+							<Building2
+								size={16}
+								className='mr-2 text-gray-500'
+							/>
+							<span>{job.companyName}</span>
+						</div>
 					</div>
 				</div>
 
-				{/* Location */}
-				<div className='mb-4 text-gray-600 text-sm'>{job.location}</div>
+				<div className='mb-6 flex flex-wrap items-center'>
+					<div className='mr-5 text-gray-600 text-sm flex items-center mb-2'>
+						<MapPin
+							size={16}
+							className='mr-1 text-orange-400'
+						/>
+						{job.location}
+					</div>
+					<div className='text-gray-600 text-sm flex items-center mb-2'>
+						<CalendarClock
+							size={16}
+							className='mr-1 text-orange-400'
+						/>
+						{randomTypeOfJob[Math.floor(Math.random() * randomTypeOfJob.length)]}
+					</div>
+				</div>
 
 				{/* Details button at the bottom */}
 				<div className='flex justify-end'>
 					<button
-						className='px-4 py-2 bg-yellow-500 text-white text-sm font-medium rounded-md hover:bg-yellow-600 transition'
+						className='px-5 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-sm font-medium rounded-lg transform transition-all duration-300 hover:translate-y-[-2px] hover:shadow-lg hover:from-orange-600 hover:to-orange-700'
 						onClick={onViewDetails}
 					>
-						Details
+						View Details
 					</button>
 				</div>
 			</div>

@@ -8,6 +8,6 @@ export type JobRecord = {
 	requirements: string;
 	datePosted?: string; 
 	salary?: string; 
-	tags?: string[]; 
 	companyLogoUrl?: string; 
+	bookmarked?: boolean;
 };

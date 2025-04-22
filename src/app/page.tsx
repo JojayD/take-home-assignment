@@ -5,8 +5,21 @@ import { getAllJobs } from "../../lib/jobs";
 import JobCard from "../../components/JobCard";
 import SearchBar from "../../components/SearchBar";
 import Link from "next/link";
-import { ArrowLeft, X } from "lucide-react";
-import UnsplashLogo from "../../components/Unsplashlogo";
+import {
+	ArrowLeft,
+	X,
+	Loader,
+	Briefcase,
+	MapPin,
+	TrendingUp,
+	BadgeCheck,
+	ChevronRight,
+	Star,
+	Bookmark,
+} from "lucide-react";
+import { Avatar } from "@mui/material";
+import Image from "next/image";
+import { getLocalStorage, setLocalStorage } from "../../hooks/useLocalStorage";
 
 export default function Home() {
 	const [jobs, setJobs] = useState<(JobRecord & { id: string })[]>([]);
@@ -27,11 +40,30 @@ export default function Home() {
 
 		getAllJobs()
 			.then((data) => {
-				if (isMounted) {
-					setJobs(data);
-					setFilteredJobs(data);
-					setIsLoading(false);
+				if (!isMounted) {
+					return;
 				}
+
+				// Load bookmarked jobs from localStorage
+				const savedJobs = getLocalStorage<(JobRecord & { id: string })[]>(
+					"bookmarkedJobs",
+					[]
+				);
+
+				// Map through jobs and check if they're bookmarked in localStorage
+				const jobsWithBookmarkStatus = data.map((job) => {
+					const savedJob = savedJobs.find((saved) => saved.id === job.id);
+					return {
+						...job,
+						bookmarked: savedJob ? true : false,
+					};
+				});
+
+				setTimeout(() => {
+					setJobs(jobsWithBookmarkStatus);
+					setFilteredJobs(jobsWithBookmarkStatus);
+					setIsLoading(false);
+				}, 1000);
 			})
 			.catch((err) => {
 				if (isMounted) {
@@ -45,6 +77,45 @@ export default function Home() {
 			isMounted = false;
 		};
 	}, []);
+
+	// Handler for bookmarking jobs
+	const handleBookmark = useCallback(
+		(job: JobRecord & { id: string }) => {
+			// Toggle bookmark status
+			const updatedJob = { ...job, bookmarked: !job.bookmarked };
+
+			// Update jobs in state
+			const updatedJobs = jobs.map((j) => (j.id === job.id ? updatedJob : j));
+			setJobs(updatedJobs);
+
+			// Update filtered jobs in state
+			setFilteredJobs((prevFiltered) =>
+				prevFiltered.map((j) => (j.id === job.id ? updatedJob : j))
+			);
+
+			// Get current bookmarks from localStorage
+			const savedJobs = getLocalStorage<(JobRecord & { id: string })[]>(
+				"bookmarkedJobs",
+				[]
+			);
+
+			let newSavedJobs;
+			if (updatedJob.bookmarked) {
+				// Add to bookmarks if it's not already there
+				const alreadySaved = savedJobs.some((saved) => saved.id === job.id);
+				newSavedJobs = alreadySaved
+					? savedJobs.map((j) => (j.id === job.id ? updatedJob : j))
+					: [...savedJobs, updatedJob];
+			} else {
+				// Remove from bookmarks
+				newSavedJobs = savedJobs.filter((j) => j.id !== job.id);
+			}
+
+			// Save updated bookmarks to localStorage
+			setLocalStorage("bookmarkedJobs", newSavedJobs);
+		},
+		[jobs]
+	);
 
 	// Handler for viewing job details
 	const handleViewDetails = (job: JobRecord) => {
@@ -124,40 +195,94 @@ export default function Home() {
 		[searchTerm, applyFilters]
 	);
 
-	if (error) return <p className='text-red-600'>{error}</p>;
-	if (isLoading) return <p>Loading jobs…</p>;
+	if (error)
+		return (
+			<p className='text-red-600 text-center text-lg font-medium mt-10'>{error}</p>
+		);
+	if (isLoading) {
+		return (
+			<div className='flex items-center justify-center h-screen w-full bg-gradient-to-b from-gray-50 to-gray-100'>
+				<div className='flex flex-col items-center space-y-4 p-8 bg-white rounded-xl shadow-lg animate-pulse'>
+					<Loader
+						size={56}
+						className='text-orange-500 animate-spin'
+					/>
+					<p className='text-gray-700 text-xl font-medium'>
+						Loading amazing job opportunities...
+					</p>
+				</div>
+			</div>
+		);
+	}
 
 	return (
-		<div className='flex flex-col md:flex-row relative min-h-screen bg-gray-50'>
+		<div className='flex flex-col md:flex-row relative min-h-screen bg-gradient-to-br from-gray-50 to-gray-100'>
 			{/* First panel: Search bar + job list */}
 			<div
 				className={`w-full ${
-					showDetails ? "md:w-1/2 lg:w-3/5" : "w-full"
-				} p-4 transition-all duration-300`}
+					showDetails
+						? "hidden sm:block sm:w-1/2 lg:w-3/5" // Hide on mobile when details shown
+						: "block w-full" // Show full width when details hidden
+				} p-6 transition-all duration-500 ease-in-out`}
 			>
 				<div className='max-w-5xl mx-auto'>
-					<div className='mb-6'>
-						<SearchBar
-							placeholder='Search jobs...'
-							onSearch={handleSearch}
-							onFilterChange={handleFilterChange}
-						/>
+					{/* Navigation header with saved jobs link */}
+					<div className='flex justify-between items-center mb-6'>
+						<h1 className='text-2xl font-bold text-gray-800'>Job Board</h1>
+						<Link
+							href='/saved'
+							className='flex items-center px-4 py-2 bg-orange-50 hover:bg-orange-100 text-orange-600 rounded-lg transition-all duration-300 shadow-sm hover:shadow-md'
+						>
+							<Bookmark
+								className='mr-2'
+								size={18}
+							/>
+							<span className='font-medium'>Saved Jobs</span>
+						</Link>
 					</div>
-					<h1 className='text-2xl font-bold mb-6 text-gray-800'>
-						Job Openings ({filteredJobs.length})
+
+					<div className='mb-8 flex justify-center w-full'>
+						<div className='w-full max-w-md transform hover:translate-y-[-2px] transition-transform duration-300'>
+							<SearchBar
+								placeholder='Search jobs...'
+								onSearch={handleSearch}
+								onFilterChange={handleFilterChange}
+							/>
+						</div>
+					</div>
+					<h1 className='text-3xl font-bold mb-8 text-gray-800 border-b pb-4 border-gray-200'>
+						Job Openings{" "}
+						<span className='text-orange-500 font-semibold'>
+							({filteredJobs.length})
+						</span>
 					</h1>
 					{filteredJobs.length === 0 ? (
-						<p className='text-gray-500 text-center py-8'>
-							No jobs match your search criteria.
-						</p>
-					) : (
-						<div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-							{filteredJobs.map((job) => (
-								<JobCard
-									key={job.id}
-									job={job}
-									onViewDetails={() => handleViewDetails(job)}
+						<div className='text-gray-500 text-center py-12 bg-white rounded-xl shadow-md'>
+							<div className='mb-4'>
+								<X
+									size={48}
+									className='mx-auto text-gray-400'
 								/>
+							</div>
+							<p className='text-xl font-medium'>
+								No jobs match your search criteria.
+							</p>
+							<p className='mt-2'>Try adjusting your search terms or filters.</p>
+						</div>
+					) : (
+						<div className='grid grid-cols-1 lg:grid-cols-2 gap-8 h-[calc(100vh-220px)] overflow-y-auto pr-1 pb-8'>
+							{/* Modified to use single column on screens below 1024px (lg breakpoint) */}
+							{filteredJobs.map((job) => (
+								<div
+									key={job.id}
+									className='transform hover:translate-y-[-5px] hover:shadow-xl transition-all duration-300'
+								>
+									<JobCard
+										job={job}
+										onViewDetails={() => handleViewDetails(job)}
+										onBookmark={() => handleBookmark(job)}
+									/>
+								</div>
 							))}
 						</div>
 					)}
@@ -166,77 +291,135 @@ export default function Home() {
 
 			{/* Second panel: Job details */}
 			{showDetails && selectedJob && (
-				<div className='fixed md:static top-0 right-0 bottom-0 w-full md:w-1/2 lg:w-2/5 bg-white border-l border-gray-200 shadow-lg z-40 overflow-y-auto transition-all duration-300 ease-in-out'>
-					<div className='p-6 max-w-2xl mx-auto'>
-						<div className='flex justify-between items-center mb-6'>
+				<div className='fixed sm:static top-0 right-0 bottom-0 w-full sm:w-1/2 lg:w-2/5 bg-white border-l border-gray-200 shadow-2xl z-40 overflow-y-auto transition-all duration-500 ease-in-out animate-fadeIn pt-16 sm:pt-0'>
+					{/* Added pt-16 for mobile to prevent header overlap */}
+
+					<div className='p-8 max-w-2xl mx-auto'>
+						<div className='flex justify-between items-center mb-8'>
 							<button
 								onClick={handleCloseDetails}
-								className='md:hidden p-2 rounded-full hover:bg-gray-100'
+								className='p-2 rounded-full hover:bg-gray-100 transition-colors duration-200 transform hover:scale-110'
 								aria-label='Close details'
 							>
-								<ArrowLeft size={20} />
+								{/* Fixed button position on mobile */}
+								<ArrowLeft
+									size={24}
+									className='text-gray-600 sm:hidden'
+								/>
+								<X
+									size={22}
+									className='text-gray-600 hidden sm:block'
+								/>
 							</button>
+
+							{/* Add bookmark button in the details view */}
 							<button
-								onClick={handleCloseDetails}
-								className='hidden md:block p-2 rounded-full hover:bg-gray-100'
-								aria-label='Close details'
+								className={`p-2 rounded-full ${
+									selectedJob.bookmarked
+										? "bg-orange-50 text-orange-500"
+										: "bg-gray-100 text-gray-500"
+								} hover:bg-orange-100 transition-colors duration-200`}
+								onClick={() =>
+									selectedJob &&
+									handleBookmark(selectedJob as JobRecord & { id: string })
+								}
 							>
-								<X size={20} />
+								<Bookmark
+									size={20}
+									className={
+										selectedJob.bookmarked ? "fill-orange-500" : "fill-transparent"
+									}
+								/>
 							</button>
 						</div>
 
-						<div className='mb-6 flex items-center'>
-							<div className='w-16 h-16 mr-4'>
-								<UnsplashLogo
-									seed={selectedJob.id}
-									className='w-full h-full'
-								/>
+						<div className='mb-8 flex items-center'>
+							<div className='w-16 h-16 mr-5 transform hover:scale-110 transition-transform duration-300'>
+								<Avatar
+									className='shadow-md'
+									sx={{
+										width: 64,
+										height: 64,
+										bgcolor: "orange.500",
+										fontSize: "1.8rem",
+									}}
+								>
+									{selectedJob.jobTitle[0] || ""}
+								</Avatar>
 							</div>
 							<div>
-								<h2 className='text-2xl font-bold mb-1'>{selectedJob.jobTitle}</h2>
-								<p className='text-gray-600 text-lg'>{selectedJob.companyName}</p>
+								<h2 className='text-2xl font-bold mb-2 text-gray-800'>
+									{selectedJob.jobTitle}
+								</h2>
+								<p className='text-gray-600 text-lg flex items-center'>
+									<Briefcase
+										size={18}
+										className='mr-2 text-orange-500'
+									/>
+									{selectedJob.companyName}
+								</p>
 							</div>
 						</div>
 
-						<div className='mb-6'>
-							<div className='flex items-center mb-4'>
-								<div className='text-lg font-semibold mr-4'>{selectedJob.salary}</div>
-								<div className='text-gray-600'>{selectedJob.location}</div>
-							</div>
-							{selectedJob.tags && (
-								<div className='flex flex-wrap gap-2 mb-4'>
-									{selectedJob.tags.map((tag) => (
-										<span
-											key={tag}
-											className='px-3 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full'
-										>
-											{tag}
-										</span>
-									))}
+						<div className='mb-8 bg-gray-50 p-5 rounded-lg shadow-inner'>
+							<div className='flex items-center justify-between mb-2'>
+								<div className='flex items-center text-lg font-semibold text-gray-800'>
+									<TrendingUp
+										size={20}
+										className='mr-2 text-green-500'
+									/>
+									{selectedJob.salary}
 								</div>
-							)}
-						</div>
-
-						<div className='mb-6'>
-							<h3 className='text-xl font-semibold mb-3'>Job Description</h3>
-							<p className='text-gray-700 whitespace-pre-line'>
-								{selectedJob.jobDescription}
-							</p>
+								<div className='flex items-center text-gray-600'>
+									<MapPin
+										size={18}
+										className='mr-2 text-orange-500'
+									/>
+									{selectedJob.location}
+								</div>
+							</div>
 						</div>
 
 						<div className='mb-8'>
-							<h3 className='text-xl font-semibold mb-3'>Requirements</h3>
-							<p className='text-gray-700 whitespace-pre-line'>
-								{selectedJob.requirements}
-							</p>
+							<h3 className='text-xl font-semibold mb-4 flex items-center text-gray-800'>
+								<BadgeCheck
+									size={22}
+									className='mr-2 text-blue-500'
+								/>
+								Job Description
+							</h3>
+							<div className='bg-white p-5 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300'>
+								<p className='text-gray-700 whitespace-pre-line leading-relaxed'>
+									{selectedJob.jobDescription}
+								</p>
+							</div>
 						</div>
 
-						<div className='mt-6 border-t pt-6'>
+						<div className='mb-10'>
+							<h3 className='text-xl font-semibold mb-4 flex items-center text-gray-800'>
+								<Star
+									size={22}
+									className='mr-2 text-yellow-500'
+								/>
+								Requirements
+							</h3>
+							<div className='bg-white p-5 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300'>
+								<p className='text-gray-700 whitespace-pre-line leading-relaxed'>
+									{selectedJob.requirements}
+								</p>
+							</div>
+						</div>
+
+						<div className='mt-8 border-t pt-8 border-gray-200'>
 							<Link
 								href={`/jobs/${selectedJob.id}`}
-								className='block w-full py-3 bg-orange-500 hover:bg-orange-600 text-white text-center font-medium rounded-lg transition-colors'
+								className='group block w-full py-3 bg-orange-500 hover:bg-orange-600 text-white text-center font-medium rounded-lg transition-all duration-300 shadow-md hover:shadow-lg transform hover:translate-y-[-2px]'
 							>
 								View Full Details
+								<ChevronRight
+									size={18}
+									className='inline-block ml-1 transition-transform duration-300 group-hover:translate-x-1'
+								/>
 							</Link>
 						</div>
 					</div>
