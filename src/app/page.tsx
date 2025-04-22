@@ -5,6 +5,8 @@ import { getAllJobs } from "../../lib/jobs";
 import JobCard from "../../components/JobCard";
 import SearchBar from "../../components/SearchBar";
 import Link from "next/link";
+
+import mapbox from "mapbox-gl";
 import {
 	ArrowLeft,
 	X,
@@ -20,6 +22,7 @@ import {
 import { Avatar } from "@mui/material";
 import Image from "next/image";
 import { getLocalStorage, setLocalStorage } from "../../hooks/useLocalStorage";
+import JobMap from "../../components/JobMap";
 
 export default function Home() {
 	const [jobs, setJobs] = useState<(JobRecord & { id: string })[]>([]);
@@ -32,6 +35,10 @@ export default function Home() {
 	const [isLoading, setIsLoading] = useState(true);
 	const [selectedJob, setSelectedJob] = useState<JobRecord | null>(null);
 	const [showDetails, setShowDetails] = useState(false);
+	// State to track which jobs are visible on the map
+	const [visibleJobs, setVisibleJobs] = useState<(JobRecord & { id: string })[]>(
+		[]
+	);
 
 	// Fetch jobs only once when component mounts
 	useEffect(() => {
@@ -217,7 +224,7 @@ export default function Home() {
 
 	return (
 		<div className='flex flex-col md:flex-row relative min-h-screen bg-gradient-to-br from-gray-50 to-gray-100'>
-			{/* First panel: Search bar + job list */}
+			{/* First panel: Search bar + map + job list */}
 			<div
 				className={`w-full ${
 					showDetails
@@ -241,21 +248,82 @@ export default function Home() {
 						</Link>
 					</div>
 
-					<div className='mt-8 mb-16 flex justify-center w-full'>
-						<div className='w-full max-w-md transform hover:translate-y-[-2px] transition-transform duration-300'>
+					{/* Search bar and filters - positioned above map */}
+					<div className='sticky top-20 z-10 bg-gray-50/95 backdrop-blur-sm rounded-xl shadow-md p-5 mb-6'>
+						<div className='w-full transform hover:translate-y-[-2px] transition-transform duration-300'>
 							<SearchBar
 								placeholder='Search jobs...'
 								onSearch={handleSearch}
 								onFilterChange={handleFilterChange}
 							/>
 						</div>
+
+						{/* Filter indicators */}
+						<div className='flex items-center justify-between mt-3'>
+							<div className='flex items-center gap-2'>
+								<span className='text-sm text-gray-500'>Filter:</span>
+								<div
+									className={`px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-colors ${
+										activeFilter === "all"
+											? "bg-orange-100 text-orange-700"
+											: "bg-gray-100 text-gray-600 hover:bg-gray-200"
+									}`}
+									onClick={() => handleFilterChange("all")}
+								>
+									All
+								</div>
+								<div
+									className={`px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-colors ${
+										activeFilter === "jobTitle"
+											? "bg-orange-100 text-orange-700"
+											: "bg-gray-100 text-gray-600 hover:bg-gray-200"
+									}`}
+									onClick={() => handleFilterChange("jobTitle")}
+								>
+									Job Title
+								</div>
+								<div
+									className={`px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-colors ${
+										activeFilter === "companyName"
+											? "bg-orange-100 text-orange-700"
+											: "bg-gray-100 text-gray-600 hover:bg-gray-200"
+									}`}
+									onClick={() => handleFilterChange("companyName")}
+								>
+									Company
+								</div>
+							</div>
+							<div className='text-xs text-gray-500'>
+								{filteredJobs.length} result{filteredJobs.length !== 1 ? "s" : ""}
+							</div>
+						</div>
 					</div>
-					<h1 className='text-3xl font-bold mb-8 mt-8 text-gray-800 border-b pb-4 border-gray-200'>
-						Job Openings{" "}
-						<span className='text-orange-500 font-semibold'>
-							({filteredJobs.length})
-						</span>
-					</h1>
+
+					{/* Map - always visible */}
+					<div className='mb-6 h-[300px] rounded-xl overflow-hidden shadow-lg border border-gray-200'>
+						<JobMap
+							jobs={filteredJobs}
+							selectedJobId={selectedJob?.id}
+							onMarkerClick={(jobId) => {
+								const job = jobs.find((j) => j.id === jobId);
+								if (job) handleViewDetails(job);
+							}}
+							className='w-full h-full'
+						/>
+					</div>
+
+					{/* Job Listings Heading with horizontal scroll hint */}
+					<div className='flex items-center justify-between mb-4'>
+						<h2 className='text-xl font-bold text-gray-800'>Job Openings</h2>
+						<div className='flex items-center text-sm text-gray-500'>
+							<ChevronRight
+								size={16}
+								className='mr-1 text-orange-500'
+							/>
+							<span>Scroll horizontally to see more</span>
+						</div>
+					</div>
+
 					{filteredJobs.length === 0 ? (
 						<div className='text-gray-500 text-center py-12 bg-white rounded-xl shadow-md'>
 							<div className='mb-4'>
@@ -270,20 +338,26 @@ export default function Home() {
 							<p className='mt-2'>Try adjusting your search terms or filters.</p>
 						</div>
 					) : (
-						<div className='grid grid-cols-1 lg:grid-cols-2 gap-8 h-[calc(100vh-220px)] overflow-y-auto pr-1 pb-8'>
-							{/* Modified to use single column on screens below 1024px (lg breakpoint) */}
-							{filteredJobs.map((job) => (
-								<div
-									key={job.id}
-									className='transform hover:translate-y-[-5px] hover:shadow-xl transition-all duration-300'
-								>
-									<JobCard
-										job={job}
-										onViewDetails={() => handleViewDetails(job)}
-										onBookmark={() => handleBookmark(job)}
-									/>
-								</div>
-							))}
+						/* Horizontal scrolling container for job cards */
+						<div className='relative overflow-x-auto pb-6'>
+							<div className='flex space-x-6 pb-4 px-1'>
+								{filteredJobs.map((job) => (
+									<div
+										key={job.id}
+										className='w-[320px] flex-shrink-0 transform hover:translate-y-[-5px] hover:shadow-xl transition-all duration-300'
+									>
+										<JobCard
+											job={job}
+											onViewDetails={() => handleViewDetails(job)}
+											onBookmark={() => handleBookmark(job)}
+										/>
+									</div>
+								))}
+							</div>
+
+							{/* Scroll indicators/shadows */}
+							<div className='absolute top-0 bottom-0 left-0 w-8 bg-gradient-to-r from-gray-50 to-transparent pointer-events-none'></div>
+							<div className='absolute top-0 bottom-0 right-0 w-8 bg-gradient-to-l from-gray-50 to-transparent pointer-events-none'></div>
 						</div>
 					)}
 				</div>
@@ -296,22 +370,6 @@ export default function Home() {
 
 					<div className='p-8 max-w-2xl mx-auto'>
 						<div className='flex justify-between items-center mb-8'>
-							<button
-								onClick={handleCloseDetails}
-								className='p-2 rounded-full hover:bg-gray-100 transition-colors duration-200 transform hover:scale-110'
-								aria-label='Close details'
-							>
-								{/* Fixed button position on mobile */}
-								<ArrowLeft
-									size={24}
-									className='text-gray-600 sm:hidden'
-								/>
-								<X
-									size={22}
-									className='text-gray-600 hidden sm:block'
-								/>
-							</button>
-
 							{/* Add bookmark button in the details view */}
 							<button
 								className={`p-2 rounded-full ${
@@ -410,7 +468,7 @@ export default function Home() {
 							</div>
 						</div>
 
-						<div className='mt-8 border-t pt-8 border-gray-200'>
+						<div className='flex justify-center items-center mt-8 border-t pt-8 border-gray-200 flex-col gap-2 '>
 							<Link
 								href={`/jobs/${selectedJob.id}`}
 								className='group block w-full py-3 bg-orange-500 hover:bg-orange-600 text-white text-center font-medium rounded-lg transition-all duration-300 shadow-md hover:shadow-lg transform hover:translate-y-[-2px]'
@@ -421,6 +479,21 @@ export default function Home() {
 									className='inline-block ml-1 transition-transform duration-300 group-hover:translate-x-1'
 								/>
 							</Link>
+							<button
+								onClick={handleCloseDetails}
+								className='p-2 rounded-full hover:bg-gray transition-colors duration-300 transform hover:scale-150'
+								aria-label='Close details'
+							>
+								{/* Fixed button position on mobile */}
+								<ArrowLeft
+									size={24}
+									className='text-gray-600 sm:hidden'
+								/>
+								<X
+									size={22}
+									className='text-red-600 hidden sm:block'
+								/>
+							</button>
 						</div>
 					</div>
 				</div>

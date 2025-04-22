@@ -6,8 +6,12 @@ export type JobRecord = {
 	location: string;
 	jobDescription: string;
 	requirements: string;
-	datePosted?: string; 
-	salary?: string; 
-	companyLogoUrl?: string; 
+	datePosted?: string;
+	salary?: string;
+	companyLogoUrl?: string;
 	bookmarked?: boolean;
+	coordinates?: {
+		latitude: number;
+		longitude: number;
+	};
 };

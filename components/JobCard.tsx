@@ -30,7 +30,7 @@ export default function JobCard({
 	onBookmark,
 }: Props) {
 	return (
-		<div className='relative bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 w-full group'>
+		<div className='relative bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 w-full group h-[280px]'>
 			{/* Colorful top border accent */}
 			<div className='h-1 bg-gradient-to-r from-orange-400 to-yellow-500'></div>
 
