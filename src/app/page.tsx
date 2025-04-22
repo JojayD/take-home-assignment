@@ -208,7 +208,7 @@ export default function Home() {
 						className='text-orange-500 animate-spin'
 					/>
 					<p className='text-gray-700 text-xl font-medium'>
-						Loading amazing job opportunities...
+						Loading the job that fits..
 					</p>
 				</div>
 			</div>
@@ -241,7 +241,7 @@ export default function Home() {
 						</Link>
 					</div>
 
-					<div className='mb-8 flex justify-center w-full'>
+					<div className='mt-8 mb-16 flex justify-center w-full'>
 						<div className='w-full max-w-md transform hover:translate-y-[-2px] transition-transform duration-300'>
 							<SearchBar
 								placeholder='Search jobs...'
@@ -250,7 +250,7 @@ export default function Home() {
 							/>
 						</div>
 					</div>
-					<h1 className='text-3xl font-bold mb-8 text-gray-800 border-b pb-4 border-gray-200'>
+					<h1 className='text-3xl font-bold mb-8 mt-8 text-gray-800 border-b pb-4 border-gray-200'>
 						Job Openings{" "}
 						<span className='text-orange-500 font-semibold'>
 							({filteredJobs.length})
