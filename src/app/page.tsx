@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { JobRecord } from "../../types/jobRecord";
 import { getAllJobs } from "../../lib/jobs";
 import JobCard from "../../components/JobCard";
@@ -39,6 +39,12 @@ export default function Home() {
 	const [visibleJobs, setVisibleJobs] = useState<(JobRecord & { id: string })[]>(
 		[]
 	);
+
+	// Ref for the scrollable container
+	const scrollContainerRef = useRef<HTMLDivElement>(null);
+	const [isScrolling, setIsScrolling] = useState(false);
+	const [startX, setStartX] = useState(0);
+	const [scrollLeft, setScrollLeft] = useState(0);
 
 	// Fetch jobs only once when component mounts
 	useEffect(() => {
@@ -202,6 +208,63 @@ export default function Home() {
 		[searchTerm, applyFilters]
 	);
 
+	// Mouse handlers for horizontal scroll
+	const handleMouseDown = (e: React.MouseEvent) => {
+		if (!scrollContainerRef.current) return;
+		setIsScrolling(true);
+		setStartX(e.pageX - scrollContainerRef.current.offsetLeft);
+		setScrollLeft(scrollContainerRef.current.scrollLeft);
+		scrollContainerRef.current.style.cursor = "grabbing";
+	};
+
+	const handleMouseUp = () => {
+		if (!scrollContainerRef.current) return;
+		setIsScrolling(false);
+		scrollContainerRef.current.style.cursor = "grab";
+	};
+
+	const handleMouseMove = (e: React.MouseEvent) => {
+		if (!isScrolling || !scrollContainerRef.current) return;
+		e.preventDefault();
+		const x = e.pageX - scrollContainerRef.current.offsetLeft;
+		const walk = (x - startX) * 1.5; // Scroll speed multiplier
+		scrollContainerRef.current.scrollLeft = scrollLeft - walk;
+	};
+
+	const handleMouseLeave = () => {
+		if (isScrolling) handleMouseUp();
+	};
+
+	// Touch handlers for mobile devices
+	const handleTouchStart = (e: React.TouchEvent) => {
+		if (!scrollContainerRef.current) return;
+		setIsScrolling(true);
+		setStartX(e.touches[0].pageX - scrollContainerRef.current.offsetLeft);
+		setScrollLeft(scrollContainerRef.current.scrollLeft);
+	};
+
+	const handleTouchMove = (e: React.TouchEvent) => {
+		if (!isScrolling || !scrollContainerRef.current) return;
+		const x = e.touches[0].pageX - scrollContainerRef.current.offsetLeft;
+		const walk = (x - startX) * 1.5;
+		scrollContainerRef.current.scrollLeft = scrollLeft - walk;
+	};
+
+	const handleTouchEnd = () => {
+		setIsScrolling(false);
+	};
+
+	// Scroll buttons handlers
+	const handleScrollLeft = () => {
+		if (!scrollContainerRef.current) return;
+		scrollContainerRef.current.scrollBy({ left: -340, behavior: "smooth" });
+	};
+
+	const handleScrollRight = () => {
+		if (!scrollContainerRef.current) return;
+		scrollContainerRef.current.scrollBy({ left: 340, behavior: "smooth" });
+	};
+
 	if (error)
 		return (
 			<p className='text-red-600 text-center text-lg font-medium mt-10'>{error}</p>
@@ -339,25 +402,74 @@ export default function Home() {
 						</div>
 					) : (
 						/* Horizontal scrolling container for job cards */
-						<div className='relative overflow-x-auto pb-6'>
-							<div className='flex space-x-6 pb-4 px-1'>
-								{filteredJobs.map((job) => (
-									<div
-										key={job.id}
-										className='w-[320px] flex-shrink-0 transform hover:translate-y-[-5px] hover:shadow-xl transition-all duration-300'
-									>
-										<JobCard
-											job={job}
-											onViewDetails={() => handleViewDetails(job)}
-											onBookmark={() => handleBookmark(job)}
-										/>
-									</div>
-								))}
+						<div className='relative'>
+							{/* Left scroll button - only show if there are jobs */}
+							{filteredJobs.length > 0 && (
+								<button
+									onClick={handleScrollLeft}
+									className='absolute left-0 top-1/2 -translate-y-1/2 z-20 bg-white/90 backdrop-blur-sm rounded-full p-2.5 shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 border border-gray-100'
+									aria-label='Scroll left'
+								>
+									<ArrowLeft
+										size={20}
+										className='text-orange-500'
+									/>
+								</button>
+							)}
+
+							<div
+								className='overflow-x-auto pb-6 scroll-smooth scrollbar-hide'
+								style={{
+									WebkitOverflowScrolling: "touch",
+									overflowY: "hidden",
+									cursor: "grab",
+								}}
+								ref={scrollContainerRef}
+								onMouseDown={handleMouseDown}
+								onMouseUp={handleMouseUp}
+								onMouseMove={handleMouseMove}
+								onMouseLeave={handleMouseLeave}
+								onTouchStart={handleTouchStart}
+								onTouchMove={handleTouchMove}
+								onTouchEnd={handleTouchEnd}
+							>
+								<div className='flex space-x-6 pb-4 px-1 min-w-max pl-10 pr-10'>
+									{filteredJobs.map((job) => (
+										<div
+											key={job.id}
+											className='w-[320px] flex-shrink-0 transform hover:translate-y-[-5px] hover:shadow-xl transition-all duration-300'
+										>
+											<JobCard
+												job={job}
+												onViewDetails={() => handleViewDetails(job)}
+												onBookmark={() => handleBookmark(job)}
+											/>
+										</div>
+									))}
+								</div>
 							</div>
 
+							{/* Right scroll button - only show if there are jobs */}
+							{filteredJobs.length > 0 && (
+								<button
+									onClick={handleScrollRight}
+									className='absolute right-0 top-1/2 -translate-y-1/2 z-20 bg-white/90 backdrop-blur-sm rounded-full p-2.5 shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 border border-gray-100'
+									aria-label='Scroll right'
+								>
+									<ChevronRight
+										size={20}
+										className='text-orange-500'
+									/>
+								</button>
+							)}
+
 							{/* Scroll indicators/shadows */}
-							<div className='absolute top-0 bottom-0 left-0 w-8 bg-gradient-to-r from-gray-50 to-transparent pointer-events-none'></div>
-							<div className='absolute top-0 bottom-0 right-0 w-8 bg-gradient-to-l from-gray-50 to-transparent pointer-events-none'></div>
+							{filteredJobs.length > 0 && (
+								<>
+									<div className='absolute top-0 bottom-0 left-0 w-12 bg-gradient-to-r from-gray-50 to-transparent pointer-events-none z-10'></div>
+									<div className='absolute top-0 bottom-0 right-0 w-12 bg-gradient-to-l from-gray-50 to-transparent pointer-events-none z-10'></div>
+								</>
+							)}
 						</div>
 					)}
 				</div>
