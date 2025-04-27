@@ -2,7 +2,13 @@
 "use client";
 
 import React from "react";
-import { Bookmark, MapPin, Building2, CalendarClock } from "lucide-react";
+import {
+	Bookmark,
+	MapPin,
+	Building2,
+	CalendarClock,
+	BanknoteIcon,
+} from "lucide-react";
 import { JobRecord } from "../types/jobRecord";
 import Avatar from "@mui/material/Avatar";
 
@@ -13,14 +19,6 @@ type Props = {
 	onDeleteLocalStorage?: (job: JobRecord) => void;
 	onBookmark?: (job: JobRecord) => void;
 };
-
-const randomTypeOfJob = [
-	"Full-time",
-	"Part-time",
-	"Contract",
-	"Internship",
-	"Remote",
-];
 
 export default function JobCard({
 	job,
@@ -50,7 +48,7 @@ export default function JobCard({
 			</button>
 
 			<div
-				className='p-6 cursor-pointer transition-all duration-300 hover:bg-gray-50'
+				className='p-6 cursor-pointer transition-all duration-300 hover:bg-gray-50 flex flex-col justify-center h-full'
 				onClick={onViewDetails}
 			>
 				{/* Logo + Job Title */}
@@ -95,18 +93,29 @@ export default function JobCard({
 							size={16}
 							className='mr-1 text-orange-400'
 						/>
-						{randomTypeOfJob[Math.floor(Math.random() * randomTypeOfJob.length)]}
+						{job.jobType}
 					</div>
 				</div>
-
-				{/* Details button at the bottom */}
-				<div className='flex justify-end'>
-					<button
-						className='px-5 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-sm font-medium rounded-lg transform transition-all duration-300 hover:translate-y-[-2px] hover:shadow-lg hover:from-orange-600 hover:to-orange-700'
-						onClick={onViewDetails}
-					>
-						View Details
-					</button>
+				<div className='flex justify-between mb-4'>
+					<div className='flex items-center mt-auto mb-4'>
+						<div className='flex items-center px-3 py-1.5 bg-green-50 text-green-700 rounded-lg border border-green-200 font-medium'>
+							<BanknoteIcon
+								size={16}
+								className='mr-2 text-green-500'
+							/>
+							{job.salary}
+						</div>
+						
+					</div>
+					{/* Details button at the bottom */}
+					<div className=''>
+						<button
+							className='px-5 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-sm font-medium rounded-lg transform transition-all duration-300 hover:translate-y-[-2px] hover:shadow-lg hover:from-orange-600 hover:to-orange-700'
+							onClick={onViewDetails}
+						>
+							View Details
+						</button>
+					</div>
 				</div>
 			</div>
 		</div>

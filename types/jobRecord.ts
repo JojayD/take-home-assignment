@@ -6,6 +6,7 @@ export type JobRecord = {
 	location: string;
 	jobDescription: string;
 	requirements: string;
+	jobType: string;
 	datePosted?: string;
 	salary?: string;
 	companyLogoUrl?: string;

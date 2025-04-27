@@ -20,9 +20,15 @@ import {
 	Share2,
 	ChevronRight,
 	Bookmark,
+	BanknoteIcon,
 } from "lucide-react";
 import Link from "next/link";
 import Avatar from "@mui/material/Avatar";
+import {
+	getLocalStorage,
+	setLocalStorage,
+} from "../../../../hooks/useLocalStorage";
+
 const randomTypeOfJob = [
 	"Full-time",
 	"Part-time",
@@ -44,6 +50,7 @@ export default function JobDetailPage() {
 	const [job, setJob] = useState<(JobRecord & { id: string }) | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+	const [isSaved, setIsSaved] = useState(false);
 
 	useEffect(() => {
 		async function loadJob() {
@@ -53,6 +60,16 @@ export default function JobDetailPage() {
 
 				if (foundJob) {
 					setJob(foundJob);
+
+					// Check if the job is already saved
+					const savedJobs = getLocalStorage<(JobRecord & { id: string })[]>(
+						"bookmarkedJobs",
+						[]
+					);
+					const jobIsSaved = savedJobs.some(
+						(savedJob) => savedJob.id === foundJob.id
+					);
+					setIsSaved(jobIsSaved);
 				} else {
 					setError("Job not found");
 				}
@@ -69,6 +86,33 @@ export default function JobDetailPage() {
 
 		loadJob();
 	}, [jobId]);
+
+	const handleSaveJob = () => {
+		if (!job) return;
+
+		// Get current saved jobs from local storage
+		const savedJobs = getLocalStorage<(JobRecord & { id: string })[]>(
+			"bookmarkedJobs",
+			[]
+		);
+
+		// Check if the job is already saved
+		const isAlreadySaved = savedJobs.some((savedJob) => savedJob.id === job.id);
+
+		let updatedSavedJobs;
+		if (isAlreadySaved) {
+			// Remove the job if it's already saved
+			updatedSavedJobs = savedJobs.filter((savedJob) => savedJob.id !== job.id);
+			setIsSaved(false);
+		} else {
+			// Add the job to saved jobs
+			updatedSavedJobs = [...savedJobs, job];
+			setIsSaved(true);
+		}
+
+		// Update local storage
+		setLocalStorage("bookmarkedJobs", updatedSavedJobs);
+	};
 
 	if (isLoading) {
 		return (
@@ -113,7 +157,7 @@ export default function JobDetailPage() {
 				{/* Back button */}
 				<Link
 					href='/'
-					className='inline-flex items-center text-gray-600 hover:text-orange-500 mb-8 px-4 py-2 rounded-lg bg-white shadow-sm hover:shadow-md transition-all duration-300 transform hover:translate-x-[-2px]'
+					className='inline-flex items-center text-gray-600 hover:text-orange-500 mb-8 px-4 py-2 rounded-lg bg-white shadow-sm hover:shadow-md transition-all duration-300 transform hover:translate-x-[-2px] mt-12'
 				>
 					<ArrowLeft
 						size={18}
@@ -173,20 +217,15 @@ export default function JobDetailPage() {
 							</div>
 						</div>
 						{job.salary && (
-							<div className='bg-gradient-to-r from-green-500 to-green-600 text-white px-5 py-2.5 rounded-lg font-semibold shadow-md transform hover:scale-105 transition-all duration-300'>
-								{job.salary}
+							<div>
+								<div className='bg-gradient-to-r from-green-500 to-green-600 text-white px-5 py-2.5 rounded-lg font-semibold shadow-md transform hover:scale-105 transition-all duration-300'>
+									{job.salary}
+								</div>
 							</div>
 						)}
 					</div>
 
 					<div className='flex flex-wrap gap-4 mt-8 border-t border-gray-100 pt-6'>
-						<button className='flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-700 shadow-sm hover:shadow-md'>
-							<Heart
-								size={18}
-								className='text-red-500'
-							/>
-							<span>Save</span>
-						</button>
 						<button className='flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-700 shadow-sm hover:shadow-md'>
 							<Share2
 								size={18}
@@ -237,7 +276,13 @@ export default function JobDetailPage() {
 									/>
 									<div>
 										<p className='text-sm text-green-700 font-medium'>Experience</p>
-										<p className='text-gray-800'>{randomExperience[Math.floor(Math.random()*randomExperience.length)]}</p>
+										<p className='text-gray-800'>
+											{
+												randomExperience[
+													Math.floor(Math.random() * randomExperience.length)
+												]
+											}
+										</p>
 									</div>
 								</div>
 								<div className='bg-purple-50 p-4 rounded-xl flex items-center'>
@@ -297,8 +342,15 @@ export default function JobDetailPage() {
 								/>
 							</button>
 
-							<button className='w-full border-2 border-orange-500 text-orange-500 hover:bg-orange-50 py-3 px-4 rounded-lg font-medium transition-all duration-300 shadow-sm hover:shadow-md'>
-								Save Job
+							<button
+								onClick={handleSaveJob}
+								className={`w-full py-3 px-4 rounded-lg font-medium transition-all duration-300 shadow-sm hover:shadow-md ${
+									isSaved
+										? "bg-orange-500 text-white hover:bg-orange-600"
+										: "border-2 border-orange-500 text-orange-500 hover:bg-orange-50"
+								}`}
+							>
+								{isSaved ? "Remove saved" : "Save Job"}
 							</button>
 
 							<div className='mt-8 pt-6 border-t border-gray-100'>

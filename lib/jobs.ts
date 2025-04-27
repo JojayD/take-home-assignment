@@ -13,9 +13,9 @@ const headerMap: Record<string, keyof JobRecord> = {
 function createJobId(job: JobRecord, index: number): string {
 	const baseId = `${job.jobTitle}-${job.companyName}`
 		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, "-") 
+		.replace(/[^a-z0-9]+/g, "-")
 		.replace(/-+/g, "-")
-		.replace(/^-|-$/g, ""); 
+		.replace(/^-|-$/g, "");
 
 	const idSuffix = index.toString().padStart(3, "0");
 	return `${baseId}-${idSuffix}`;
@@ -42,11 +42,20 @@ export async function getAllJobs(): Promise<(JobRecord & { id: string })[]> {
 			return headerMap[key] ?? key;
 		},
 	});
-
+	const jobTypes = [
+		"Full-time",
+		"Part-time",
+		"Contract",
+		"Internship",
+		"Remote",
+	];
 	// Use the index in the array for consistent ID generation
 	jobsCache = result.data.map((job, index) => ({
 		...job,
 		id: createJobId(job, index),
+		// Add random properties here
+		jobType: jobTypes[Math.floor(Math.random() * jobTypes.length)],
+		salary: `$${makeRandomSalary(50000, 150000).toLocaleString()}`,
 	}));
 
 	return jobsCache;
@@ -57,4 +66,9 @@ export async function getJobById(
 ): Promise<(JobRecord & { id: string }) | undefined> {
 	const jobs = await getAllJobs();
 	return jobs.find((job) => job.id === id);
+}
+
+export function makeRandomSalary(min: number, max: number): number {
+	const randomSalary = Math.floor(Math.random() * (max - min + 1)) + min;
+	return randomSalary;
 }

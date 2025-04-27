@@ -5,7 +5,7 @@ import { getAllJobs } from "../../lib/jobs";
 import JobCard from "../../components/JobCard";
 import SearchBar from "../../components/SearchBar";
 import Link from "next/link";
-
+import Landing from "../../components/Landing";
 import mapbox from "mapbox-gl";
 import {
 	ArrowLeft,
@@ -39,6 +39,7 @@ export default function Home() {
 	const [visibleJobs, setVisibleJobs] = useState<(JobRecord & { id: string })[]>(
 		[]
 	);
+	const [landingVisible, setLandingVisible] = useState(true);
 
 	// Ref for the scrollable container
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -91,6 +92,20 @@ export default function Home() {
 		};
 	}, []);
 
+	useEffect(() => {
+		// Check localStorage for user preference
+		const hasSeenLanding = getLocalStorage("hasSeenLanding", false);
+		if (hasSeenLanding) {
+			setLandingVisible(false);
+		}
+	}, []);
+
+	// Handler to hide landing and remember the preference
+	const handleHideLanding = () => {
+		setLandingVisible(false);
+		setLocalStorage("hasSeenLanding", true);
+	};
+
 	// Handler for bookmarking jobs
 	const handleBookmark = useCallback(
 		(job: JobRecord & { id: string }) => {
@@ -126,6 +141,9 @@ export default function Home() {
 
 			// Save updated bookmarks to localStorage
 			setLocalStorage("bookmarkedJobs", newSavedJobs);
+			alert(
+				`Job ${updatedJob.bookmarked ? "bookmarked" : "removed from bookmarks"}`
+			);
 		},
 		[jobs]
 	);
@@ -285,7 +303,15 @@ export default function Home() {
 		);
 	}
 
-	return (
+	const handleLandingClick = () => {
+		setLandingVisible(false);
+	};
+	return landingVisible ? (
+		<Landing
+			landingVisible={landingVisible}
+			setLandingVisible={handleHideLanding}
+		/>
+	) : (
 		<div className='flex flex-col md:flex-row relative min-h-screen bg-gradient-to-br from-gray-50 to-gray-100'>
 			{/* First panel: Search bar + map + job list */}
 			<div
@@ -580,7 +606,7 @@ export default function Home() {
 							</div>
 						</div>
 
-						<div className='flex justify-center items-center mt-8 border-t pt-8 border-gray-200 flex-col gap-2 '>
+						<div className='flex justify-center items-center mt-8 border-t pt-8 border-gray-200 flex-col gap-4'>
 							<Link
 								href={`/jobs/${selectedJob.id}`}
 								className='group block w-full py-3 bg-orange-500 hover:bg-orange-600 text-white text-center font-medium rounded-lg transition-all duration-300 shadow-md hover:shadow-lg transform hover:translate-y-[-2px]'
@@ -591,20 +617,25 @@ export default function Home() {
 									className='inline-block ml-1 transition-transform duration-300 group-hover:translate-x-1'
 								/>
 							</Link>
+
+							{/* Desktop close button - subtle X in the panel */}
 							<button
 								onClick={handleCloseDetails}
-								className='p-2 rounded-full hover:bg-gray transition-colors duration-300 transform hover:scale-150'
+								className='hidden sm:flex items-center justify-center p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-red-600 transition-all duration-300 transform hover:scale-110'
 								aria-label='Close details'
 							>
-								{/* Fixed button position on mobile */}
-								<ArrowLeft
-									size={24}
-									className='text-gray-600 sm:hidden'
-								/>
-								<X
-									size={22}
-									className='text-red-600 hidden sm:block'
-								/>
+								<X size={18} />
+								<span className='ml-2 text-sm font-medium'>Close</span>
+							</button>
+						</div>
+						<div className='fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-white via-white to-transparent sm:hidden z-50'>
+							<button
+								onClick={handleCloseDetails}
+								className='w-full flex items-center justify-center gap-2 py-3 bg-gray-800 text-white rounded-xl shadow-lg hover:bg-gray-700 transition-all duration-300'
+								aria-label='Close details'
+							>
+								<ArrowLeft size={18} />
+								<span className='font-medium'>Back to Jobs</span>
 							</button>
 						</div>
 					</div>
